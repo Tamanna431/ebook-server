@@ -7,10 +7,10 @@ const connectDB = require('./config/db');
 
 // Route imports
 const authRoutes = require('./routes/auth.routes');
-const ebookRoutes = require('./routes/ebook.routes'); // ✅ নতুন লাইন
-const userRoutes = require('./routes/user.routes'); // ✅ নতুন
-
-
+const ebookRoutes = require('./routes/ebook.routes');
+const userRoutes = require('./routes/user.routes');
+const paymentRoutes = require('./routes/payment.routes');
+const uploadRoutes = require('./routes/upload.routes');
 
 // Initialize Express app
 const app = express();
@@ -28,8 +28,17 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-app.use(express.json()); // Parse JSON bodies
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+
+// ✅ IMPORTANT: Webhook route MUST come BEFORE express.json()
+// This allows raw body for webhook signature verification
+app.use(
+  '/api/payments/webhook',
+  express.raw({ type: 'application/json' })
+);
+
+// JSON parser for all other routes
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Logging
 if (process.env.NODE_ENV === 'development') {
@@ -38,8 +47,10 @@ if (process.env.NODE_ENV === 'development') {
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/ebooks', ebookRoutes); // ✅ নতুন লাইন
-app.use('/api/users', userRoutes); // ✅ নতুন
+app.use('/api/ebooks', ebookRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
