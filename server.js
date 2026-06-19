@@ -7,6 +7,10 @@ const connectDB = require('./config/db');
 
 // Route imports
 const authRoutes = require('./routes/auth.routes');
+const ebookRoutes = require('./routes/ebook.routes'); // ✅ নতুন লাইন
+const userRoutes = require('./routes/user.routes'); // ✅ নতুন
+
+
 
 // Initialize Express app
 const app = express();
@@ -34,6 +38,8 @@ if (process.env.NODE_ENV === 'development') {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/ebooks', ebookRoutes); // ✅ নতুন লাইন
+app.use('/api/users', userRoutes); // ✅ নতুন
 
 // Health check route
 app.get('/api/health', (req, res) => {
