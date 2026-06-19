@@ -7,24 +7,42 @@ const getAllEbooks = async (req, res) => {
     const limit = parseInt(req.query.limit) || 12;
     const skip = (page - 1) * limit;
 
+    // Search by title
     const searchQuery = req.query.search || '';
     const searchFilter = searchQuery
-      ? { $or: [{ title: { $regex: searchQuery, $options: 'i' } }] }
+      ? { title: { $regex: searchQuery, $options: 'i' } }
       : {};
 
+    // Filter by genre
     const genreFilter = req.query.genre
-      ? { genre: { $in: req.query.genre.split(',') } }
+      ? { genre: req.query.genre }
       : {};
 
+    // Filter by price range
+    const priceFilter = {};
+    if (req.query.minPrice) priceFilter.$gte = parseFloat(req.query.minPrice);
+    if (req.query.maxPrice) priceFilter.$lte = parseFloat(req.query.maxPrice);
+    const finalPriceFilter = Object.keys(priceFilter).length > 0 ? { price: priceFilter } : {};
+
+    // Filter by availability
+    const availabilityFilter = req.query.available
+      ? { isAvailable: req.query.available === 'true' }
+      : {};
+
+    // Combine filters
     const filter = {
       ...searchFilter,
       ...genreFilter,
+      ...finalPriceFilter,
+      ...availabilityFilter,
       status: 'published',
     };
 
+    // Sort
     let sort = { createdAt: -1 };
     if (req.query.sort === 'price_low_high') sort = { price: 1 };
     if (req.query.sort === 'price_high_low') sort = { price: -1 };
+    if (req.query.sort === 'title') sort = { title: 1 };
 
     const ebooks = await Ebook.find(filter)
       .populate('writer', 'name email avatar')
