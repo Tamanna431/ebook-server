@@ -1,21 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const {
-  register,
-  login,
+const { 
+  register, 
+  login, 
   getMe,
   googleLogin,
   googleCallback,
+  updateRole 
 } = require('../controllers/auth.controller');
 const { validateToken } = require('../middleware/auth.middleware');
 
-// ✅ Google OAuth routes (এই order গুরুত্বপূর্ণ)
-router.get('/google', googleLogin);
-router.get('/google/callback', googleCallback);
+console.log('📍 Auth routes loaded');
 
-// ✅ Custom auth routes
 router.post('/register', register);
 router.post('/login', login);
 router.get('/me', validateToken, getMe);
+router.get('/google', googleLogin);
+router.get('/google/callback', googleCallback);
+router.patch('/update-role', validateToken, updateRole);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+console.log('📍 User routes loaded');
 const {
   getTopWriters,
   getMyProfile,
@@ -18,6 +19,7 @@ router.get('/top-writers', getTopWriters);
 // Protected routes
 router.get('/me', validateToken, getMyProfile);
 router.get('/me/purchases', validateToken, getMyPurchases);
+router.get('/me/purchased-ebooks', validateToken, getMyPurchasedEbooks);
 router.get('/me/purchased-ebooks', validateToken, getMyPurchasedEbooks);
 router.get('/me/bookmarks', validateToken, getMyBookmarks);
 

@@ -30,18 +30,20 @@ const ebookSchema = new mongoose.Schema(
     },
     coverImage: {
       type: String,
-      required: [true, 'Please upload a cover image'],
       default: 'https://via.placeholder.com/300x450?text=No+Cover',
+    },
+    pdfUrl: {
+      type: String,
+      default: '',
     },
     writer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Writer is required'],
     },
-    status: {
-      type: String,
-      enum: ['published', 'unpublished'],
-      default: 'unpublished',
+    isPublished: {
+      type: Boolean,
+      default: true,
     },
     soldCount: {
       type: Number,
@@ -53,7 +55,7 @@ const ebookSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 

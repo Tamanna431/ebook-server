@@ -2,20 +2,24 @@ const express = require('express');
 const router = express.Router();
 const {
   createCheckoutSession,
-  handleWebhook,
-  getSessionDetails,
+  verifyPayment,
+  checkPurchase,
+  getWriterSales,  // ✅ নতুন import
 } = require('../controllers/payment.controller');
-const { validateToken } = require('../middleware/auth.middleware');
 
-// Protected routes
+const { validateToken, checkRole } = require('../middleware/auth.middleware');
+console.log('📍 Payment routes loaded');
+
+// Create checkout session (protected)
 router.post('/create-checkout', validateToken, createCheckoutSession);
-router.get('/session/:sessionId', validateToken, getSessionDetails);
 
-// ✅ Webhook route - MUST use express.raw() for signature verification
-router.post(
-  '/webhook',
-  express.raw({ type: 'application/json' }),  // ✅ এটি খুব গুরুত্বপূর্ণ!
-  handleWebhook
-);
+// Verify payment (protected) - NO WEBHOOK NEEDED
+router.post('/verify', validateToken, verifyPayment);
+
+// Check if user purchased an ebook (protected)
+router.get('/check/:ebookId', validateToken, checkPurchase);
+
+// ✅ নতুন route - Writer এর sales history
+router.get('/writer-sales', validateToken, checkRole('writer', 'admin'), getWriterSales);
 
 module.exports = router;

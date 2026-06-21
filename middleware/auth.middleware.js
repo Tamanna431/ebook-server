@@ -1,90 +1,67 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Validate JWT Token
 const validateToken = async (req, res, next) => {
   try {
     let token;
 
-    // Check if token exists in Authorization header
+    // ১. হেডার থেকে টোকেন এক্সট্র্যাক্ট করা
     if (
       req.headers.authorization &&
-      req.headers.authorization.startsWith('Bearer')
+      req.headers.authorization.startsWith('Bearer ')
     ) {
       token = req.headers.authorization.split(' ')[1];
     }
 
+    // ২. টোকেন না থাকলে এরর রিটার্ন করা
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'Not authorized, no token provided',
+        message: 'No token provided',
       });
     }
 
-    // Verify token
+    // ৩. টোকেন ভেরিফাই করা
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Decoded Token:', decoded);
 
-    // Get user from database
-    const user = await User.findById(decoded.userId).select('-password');
+    // ৪. ডাটাবেজ থেকে ইউজার খুঁজে বের করা এবং পাসওয়ার্ড বাদ দেওয়া
+    req.user = await User.findById(decoded.id).select('-password');
 
-    if (!user) {
+    // ৫. ইউজার যদি ডাটাবেজে না থাকে
+    if (!req.user) {
       return res.status(401).json({
         success: false,
         message: 'User not found',
       });
     }
 
-    // Attach user to request
-    req.user = user;
-    next();
+    // ৬. সবকিছু ঠিক থাকলে পরবর্তী মিডলওয়্যার বা কন্ট্রোলারে পাঠানো
+    return next();
+
   } catch (error) {
     console.error('Token validation error:', error);
     return res.status(401).json({
       success: false,
-      message: 'Not authorized, token invalid or expired',
+      message: 'Invalid token',
     });
   }
 };
 
-// Verify User Role
-const verifyUser = (req, res, next) => {
-  if (req.user && req.user.role === 'user') {
-    next();
-  } else {
-    return res.status(403).json({
-      success: false,
-      message: 'Access denied. User role required.',
-    });
-  }
-};
+const checkRole = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied',
+      });
+    }
 
-// Verify Writer Role
-const verifyWriter = (req, res, next) => {
-  if (req.user && (req.user.role === 'writer' || req.user.role === 'admin')) {
     next();
-  } else {
-    return res.status(403).json({
-      success: false,
-      message: 'Access denied. Writer role required.',
-    });
-  }
-};
-
-// Verify Admin Role
-const verifyAdmin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    return res.status(403).json({
-      success: false,
-      message: 'Access denied. Admin role required.',
-    });
-  }
+  };
 };
 
 module.exports = {
   validateToken,
-  verifyUser,
-  verifyWriter,
-  verifyAdmin,
+  checkRole,
 };

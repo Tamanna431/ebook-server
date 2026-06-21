@@ -1,40 +1,43 @@
 const axios = require('axios');
 const FormData = require('form-data');
 
-/**
- * Upload image to imgBB
- * @param {string} imageBase64 - Base64 encoded image (without data:image/...;base64, prefix)
- * @returns {Promise<string>} - Image URL
- */
-const uploadToImgBB = async (imageBase64) => {
+const uploadToImgBB = async (base64Image) => {
   try {
-    const apiKey = process.env.IMGBB_API_KEY;
-
-    if (!apiKey) {
-      throw new Error('IMGBB_API_KEY is not configured');
+    if (!process.env.IMGBB_API_KEY) {
+      throw new Error('IMGBB_API_KEY not configured');
     }
 
+    console.log('📤 Uploading image to imgBB...');
+    console.log('📏 Image size:', (base64Image.length / 1024).toFixed(2), 'KB');
+
     const formData = new FormData();
-    formData.append('image', imageBase64);
-    formData.append('key', apiKey);
+    formData.append('image', base64Image);
 
     const response = await axios.post(
-      'https://api.imgbb.com/1/upload',
+      `https://api.imgbb.com/1/upload?key=${process.env.IMGBB_API_KEY}`,
       formData,
       {
-        headers: formData.getHeaders(),
-        maxContentLength: 10 * 1024 * 1024, // 10MB max
+        headers: {
+          ...formData.getHeaders(),
+          'Content-Type': 'multipart/form-data',
+        },
+        maxContentLength: 50 * 1024 * 1024,  // 50MB
+        maxBodyLength: 50 * 1024 * 1024,      // 50MB
+        timeout: 60000,  // 60 seconds
       }
     );
 
-    if (response.data.success) {
-      return response.data.data.url;
-    } else {
-      throw new Error(response.data.error?.message || 'Upload failed');
-    }
+    console.log('✅ Image uploaded to imgBB:', response.data.data.url);
+
+    return response.data.data.url;
   } catch (error) {
-    console.error('imgBB upload error:', error.response?.data || error.message);
-    throw new Error('Image upload failed');
+    console.error('❌ imgBB upload error:', error.response?.data || error.message);
+    
+    if (error.response?.status === 413) {
+      throw new Error('Image too large. Please use an image smaller than 5MB.');
+    }
+    
+    throw new Error(error.response?.data?.error?.message || 'Image upload failed');
   }
 };
 

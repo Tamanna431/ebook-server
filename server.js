@@ -1,44 +1,51 @@
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
+
 const connectDB = require('./config/db');
 
-// Route imports
+// Routes
 const authRoutes = require('./routes/auth.routes');
 const ebookRoutes = require('./routes/ebook.routes');
 const userRoutes = require('./routes/user.routes');
-const paymentRoutes = require('./routes/payment.routes');
 const uploadRoutes = require('./routes/upload.routes');
+const paymentRoutes = require('./routes/payment.routes');
 
-// Initialize Express app
 const app = express();
 
-// Connect to database
+// Database
 connectDB();
 
 // Middleware
-app.use(helmet()); // Security headers
+app.use(cookieParser());
+
 app.use(
   cors({
     origin: process.env.CLIENT_URL || 'http://localhost:3000',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
-// ✅ IMPORTANT: Webhook route MUST come BEFORE express.json()
-// This allows raw body for webhook signature verification
+app.use(helmet());
+
 app.use(
-  '/api/payments/webhook',
-  express.raw({ type: 'application/json' })
+  express.json({
+    limit: '50mb',
+  })
 );
 
-// JSON parser for all other routes
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(
+  express.urlencoded({
+    limit: '50mb',
+    extended: true,
+  })
+);
 
 // Logging
 if (process.env.NODE_ENV === 'development') {
@@ -49,10 +56,10 @@ if (process.env.NODE_ENV === 'development') {
 app.use('/api/auth', authRoutes);
 app.use('/api/ebooks', ebookRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/payments', paymentRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/payments', paymentRoutes);
 
-// Health check route
+// Health Check
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
@@ -61,31 +68,44 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 404 handler
+// Root Route
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Welcome to Fable API',
+    version: '1.0.0',
+  });
+});
+
+// 404 Handler
 app.use((req, res) => {
+  console.log('❌ Route not found:', req.method, req.originalUrl);
+
   res.status(404).json({
     success: false,
     message: 'Route not found',
   });
 });
 
-// Error handler
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
+  console.error('❌ Server Error:', err);
+
+  res.status(err.statusCode || 500).json({
     success: false,
     message: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    ...(process.env.NODE_ENV === 'development' && {
+      stack: err.stack,
+    }),
   });
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`\n🚀 Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📡 API: http://localhost:${PORT}/api`);
-  console.log(`❤️  Health: http://localhost:${PORT}/api/health\n`);
+  console.log(`❤️ Health: http://localhost:${PORT}/api/health`);
 });
 
 module.exports = app;
