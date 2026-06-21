@@ -5,19 +5,42 @@ const Transaction = require('../models/Transaction');
 // @desc    Create Stripe checkout session
 // @route   POST /api/payments/create-checkout
 // @access  Private
+// @desc    Create Stripe checkout session
+// @route   POST /api/payments/create-checkout
+// @access  Private
 const createCheckoutSession = async (req, res) => {
   try {
     const { ebookId } = req.body;
     const userId = req.user._id;
 
     console.log('🛒 Creating checkout session for ebook:', ebookId);
+    console.log('👤 User:', userId);
 
-    // Check if ebook exists
-    const ebook = await Ebook.findById(ebookId).populate('writer', 'email');
+    // ✅ Ebook find করুন with writer populate
+    const ebook = await Ebook.findById(ebookId).populate('writer', 'name email');
+    
+    // ✅ Null check
     if (!ebook) {
       return res.status(404).json({
         success: false,
         message: 'Ebook not found',
+      });
+    }
+
+    // ✅ Writer check - যদি writer না থাকে
+    if (!ebook.writer) {
+      console.error('❌ Ebook has no writer:', ebook._id);
+      return res.status(400).json({
+        success: false,
+        message: 'This ebook has no writer assigned. Please contact support.',
+      });
+    }
+
+    // ✅ Check if user is the writer (writer নিজের বই কিনতে পারবে না)
+    if (ebook.writer._id.toString() === userId.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot purchase your own ebook',
       });
     }
 
@@ -32,6 +55,14 @@ const createCheckoutSession = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'You already purchased this ebook',
+      });
+    }
+
+    // ✅ Check if ebook is available
+    if (!ebook.isAvailable) {
+      return res.status(400).json({
+        success: false,
+        message: 'This ebook is not available for purchase',
       });
     }
 
@@ -58,7 +89,7 @@ const createCheckoutSession = async (req, res) => {
       metadata: {
         ebookId: ebookId.toString(),
         userId: userId.toString(),
-        writerId: ebook.writer._id.toString(),
+        writerId: ebook.writer._id.toString(),  // ✅ এখন নিরাপদ
       },
       customer_email: req.user.email,
     });
@@ -79,7 +110,6 @@ const createCheckoutSession = async (req, res) => {
     });
   }
 };
-
 // @desc    Verify payment and complete transaction (NO WEBHOOK NEEDED)
 // @route   POST /api/payments/verify
 // @access  Private
