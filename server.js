@@ -16,7 +16,6 @@ const uploadRoutes = require('./routes/upload.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const adminRoutes = require('./routes/admin.routes');
 
-
 const app = express();
 
 // Database
@@ -25,9 +24,14 @@ connectDB();
 // Middleware
 app.use(cookieParser());
 
+// ✅ CORS - Multiple origins support
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: [
+      process.env.CLIENT_URL || 'http://localhost:3000',
+      'https://fable-client.vercel.app', // Production URL (পরে change করবেন)
+      'http://localhost:3000',
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -61,7 +65,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
-
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -104,12 +107,15 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 API: http://localhost:${PORT}/api`);
-  console.log(`❤️ Health: http://localhost:${PORT}/api/health`);
-});
-
+// ✅ Vercel এর জন্য module export (সবসময় থাকবে)
 module.exports = app;
+
+// ✅ Local development এর জন্য server start (production এ চলবে না)
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 API: http://localhost:${PORT}/api`);
+    console.log(`❤️ Health: http://localhost:${PORT}/api/health`);
+  });
+}

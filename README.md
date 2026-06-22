@@ -2,11 +2,7 @@
 
 # 🚀 Fable Server - Backend API
 
-### RESTful API for Fable Ebook Platform
 
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=node.js)](https://nodejs.org)
-[![Express](https://img.shields.io/badge/Express-4.18-blue?style=for-the-badge&logo=express)](https://expressjs.com)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green?style=for-the-badge&logo=mongodb)](https://www.mongodb.com)
 
 </div>
 
@@ -182,6 +178,6 @@ Upload image to imgBB
 
 <div align="center">
 
-Built with ❤️ by Tamanna Akter]
+Built with ❤️ by Tamanna Akter
 </div>
 ```
