@@ -114,7 +114,14 @@ const getMyPurchases = async (req, res) => {
       type: 'purchase',
       status: 'completed',
     })
-      .populate('ebook', 'title coverImage price writer')
+      .populate({
+        path: 'ebook',
+        select: 'title coverImage price',
+        populate: {
+          path: 'writer',  // ✅ Writer populate করুন
+          select: 'name email'
+        }
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -143,7 +150,6 @@ const getMyPurchases = async (req, res) => {
     });
   }
 };
-
 // @desc    Get user's purchased ebooks
 // @route   GET /api/users/me/purchased-ebooks
 // @access  Private
