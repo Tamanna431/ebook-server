@@ -118,4 +118,5 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`📡 API: http://localhost:${PORT}/api`);
     console.log(`❤️ Health: http://localhost:${PORT}/api/health`);
   });
+  
 }
