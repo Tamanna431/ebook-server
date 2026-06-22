@@ -8,16 +8,28 @@ const Bookmark = require('../models/Bookmark');
 // @access  Public
 const getTopWriters = async (req, res) => {
   try {
-    const topWriters = await Ebook.aggregate([
+    // ✅ Transaction থেকে calculate করুন (সবচেয়ে reliable)
+    const topWriters = await Transaction.aggregate([
+      // শুধু completed purchases
+      {
+        $match: {
+          status: 'completed',
+          type: 'purchase',
+        },
+      },
+      // Writer অনুযায়ী group করুন
       {
         $group: {
           _id: '$writer',
-          totalSales: { $sum: '$soldCount' },
-          totalEbooks: { $sum: 1 },
+          totalSales: { $sum: 1 },
+          totalEarnings: { $sum: '$amount' },
         },
       },
+      // Sales অনুযায়ী sort করুন
       { $sort: { totalSales: -1 } },
+      // Top 3 নিন
       { $limit: 3 },
+      // User info lookup করুন
       {
         $lookup: {
           from: 'users',
@@ -27,6 +39,7 @@ const getTopWriters = async (req, res) => {
         },
       },
       { $unwind: '$writerInfo' },
+      // শুধু প্রয়োজনীয় fields project করুন
       {
         $project: {
           _id: '$_id',
@@ -34,10 +47,23 @@ const getTopWriters = async (req, res) => {
           email: '$writerInfo.email',
           avatar: '$writerInfo.avatar',
           totalSales: 1,
-          totalEbooks: 1,
+          totalEarnings: 1,
         },
       },
     ]);
+
+    // ✅ যদি Transaction থেকে data না আসে, তাহলে User model থেকে নিন
+    if (topWriters.length === 0) {
+      const writers = await User.find({ role: 'writer' })
+        .select('name email avatar totalSales totalEarnings')
+        .sort({ totalSales: -1 })
+        .limit(3);
+
+      return res.status(200).json({
+        success: true,
+        data: writers,
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -127,7 +153,6 @@ const getMyPurchasedEbooks = async (req, res) => {
     const limit = parseInt(req.query.limit) || 12;
     const skip = (page - 1) * limit;
 
-    // Get completed purchase transactions
     const transactions = await Transaction.find({
       user: req.user._id,
       type: 'purchase',
@@ -175,7 +200,6 @@ const addBookmark = async (req, res) => {
   try {
     const { ebookId } = req.params;
 
-    // Check if ebook exists
     const ebook = await Ebook.findById(ebookId);
     if (!ebook) {
       return res.status(404).json({
@@ -184,7 +208,6 @@ const addBookmark = async (req, res) => {
       });
     }
 
-    // Check if already bookmarked
     const existing = await Bookmark.findOne({
       user: req.user._id,
       ebook: ebookId,

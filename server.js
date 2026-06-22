@@ -16,6 +16,7 @@ const uploadRoutes = require('./routes/upload.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const adminRoutes = require('./routes/admin.routes');
 
+
 const app = express();
 
 // Database
@@ -60,6 +61,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+
 
 // Health Check
 app.get('/api/health', (req, res) => {

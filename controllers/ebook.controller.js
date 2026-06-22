@@ -67,13 +67,20 @@ const getAllEbooks = async (req, res) => {
         sortOption = { createdAt: -1 };
     }
 
+    // ✅ এই line টি খুব গুরুত্বপূর্ণ!
     const ebooks = await Ebook.find(query)
-      .populate('writer', 'name email avatar')
+      .populate('writer', 'name email avatar')  // ← এই line আছে কিনা চেক করুন!
       .sort(sortOption)
       .skip(skip)
       .limit(Number(limit));
 
     const total = await Ebook.countDocuments(query);
+
+    // ✅ Debug log যোগ করুন
+    console.log('📚 Ebooks fetched:', ebooks.length);
+    if (ebooks.length > 0) {
+      console.log('👤 First ebook writer:', ebooks[0].writer);
+    }
 
     res.status(200).json({
       success: true,
@@ -93,7 +100,6 @@ const getAllEbooks = async (req, res) => {
     });
   }
 };
-
 // @desc    Get single ebook by ID
 // @route   GET /api/ebooks/:id
 // @access  Public
@@ -359,7 +365,7 @@ const getFeaturedEbooks = async (req, res) => {
       .populate('writer', 'name email avatar')
       .sort({ soldCount: -1, createdAt: -1 })
       .limit(6);
-
+      
     res.status(200).json({
       success: true,
       data: ebooks,

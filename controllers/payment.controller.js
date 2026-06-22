@@ -1,10 +1,8 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Ebook = require('../models/Ebook');
 const Transaction = require('../models/Transaction');
+const User = require('../models/User');
 
-// @desc    Create Stripe checkout session
-// @route   POST /api/payments/create-checkout
-// @access  Private
 // @desc    Create Stripe checkout session
 // @route   POST /api/payments/create-checkout
 // @access  Private
@@ -27,7 +25,7 @@ const createCheckoutSession = async (req, res) => {
       });
     }
 
-    // ✅ Writer check - যদি writer না থাকে
+    // ✅ Writer check
     if (!ebook.writer) {
       console.error('❌ Ebook has no writer:', ebook._id);
       return res.status(400).json({
@@ -36,7 +34,7 @@ const createCheckoutSession = async (req, res) => {
       });
     }
 
-    // ✅ Check if user is the writer (writer নিজের বই কিনতে পারবে না)
+    // ✅ Check if user is the writer
     if (ebook.writer._id.toString() === userId.toString()) {
       return res.status(400).json({
         success: false,
@@ -59,7 +57,7 @@ const createCheckoutSession = async (req, res) => {
     }
 
     // ✅ Check if ebook is available
-    if (!ebook.isAvailable) {
+    if (ebook.isAvailable === false) {
       return res.status(400).json({
         success: false,
         message: 'This ebook is not available for purchase',
@@ -89,7 +87,7 @@ const createCheckoutSession = async (req, res) => {
       metadata: {
         ebookId: ebookId.toString(),
         userId: userId.toString(),
-        writerId: ebook.writer._id.toString(),  // ✅ এখন নিরাপদ
+        writerId: ebook.writer._id.toString(),
       },
       customer_email: req.user.email,
     });
@@ -110,7 +108,8 @@ const createCheckoutSession = async (req, res) => {
     });
   }
 };
-// @desc    Verify payment and complete transaction (NO WEBHOOK NEEDED)
+
+// @desc    Verify payment and complete transaction
 // @route   POST /api/payments/verify
 // @access  Private
 const verifyPayment = async (req, res) => {
@@ -133,7 +132,7 @@ const verifyPayment = async (req, res) => {
     console.log('📋 Session status:', session.payment_status);
     console.log('📋 Session metadata:', session.metadata);
 
-    // Check if payment is actually completed
+    // Check if payment is completed
     if (session.payment_status !== 'paid') {
       return res.status(400).json({
         success: false,
@@ -183,17 +182,15 @@ const verifyPayment = async (req, res) => {
       },
     });
 
-    // Update ebook sold count
+    // ✅ Update ebook sold count
     await Ebook.findByIdAndUpdate(ebookId, {
       $inc: { soldCount: 1 },
     });
 
-    // Update writer earnings
-    const Writer = require('../models/Writer');
-    await Writer.findOneAndUpdate(
-      { user: writerId },
-      { $inc: { totalEarnings: amount } }
-    );
+    // ✅ Update writer's total sales in User model
+    await User.findByIdAndUpdate(writerId, {
+      $inc: { totalEarnings: amount },
+    });
 
     console.log('✅ Transaction created successfully:', transaction._id);
     console.log('✅ Ebook sold count updated');
@@ -242,6 +239,7 @@ const checkPurchase = async (req, res) => {
     });
   }
 };
+
 // @desc    Get writer's sales history
 // @route   GET /api/payments/writer-sales
 // @access  Private (Writer)
@@ -256,8 +254,8 @@ const getWriterSales = async (req, res) => {
       writer: writerId,
       status: 'completed',
     })
-      .populate('user', 'name email')  // Buyer info
-      .populate('ebook', 'title price coverImage')  // Ebook info
+      .populate('user', 'name email')
+      .populate('ebook', 'title price coverImage')
       .sort({ createdAt: -1 });
 
     // Calculate total earnings
@@ -284,6 +282,7 @@ const getWriterSales = async (req, res) => {
     });
   }
 };
+
 module.exports = {
   createCheckoutSession,
   verifyPayment,

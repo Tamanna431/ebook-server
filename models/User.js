@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: function () {
-        return !this.googleId; // Password required only if not using Google
+        return !this.googleId;
       },
       minlength: [6, 'Password must be at least 6 characters'],
       select: false,
@@ -48,6 +48,19 @@ const userSchema = new mongoose.Schema(
     hasPaidPublishingFee: {
       type: Boolean,
       default: false,
+    },
+    // ✅ নতুন fields যোগ করুন
+    totalEarnings: {
+      type: Number,
+      default: 0,
+    },
+    totalSales: {
+      type: Number,
+      default: 0,
+    },
+    totalEbooks: {
+      type: Number,
+      default: 0,
     },
     wishlist: [
       {
